@@ -34,6 +34,7 @@ const SpotifyWebApi = require('spotify-web-api-node');
 import { Spotilocal } from 'spotilocal';
 import * as URL from 'url';
 import * as vscode from 'vscode';
+import * as robot from 'robotjs';
 
 
 type DeviceSelector = () => PromiseLike<boolean>;
@@ -1508,78 +1509,80 @@ export class SpotifyPlayer extends Events.EventEmitter implements mplayer_contra
                     COMPLETED(e);
                 }
             };
+            if(this.config.winMediaKeys){
+                robot.keyTap('audio_next');
+            }else{      
+                try {
+                    const CLIENT = await ME.api.getClient();
+                    if (CLIENT) {
+                        const CREDETIALS = CLIENT['_credentials'];
+                        if (CREDETIALS) {
+                            const ACCESS_TOKEN = mplayer_helpers.toStringSafe( CREDETIALS['accessToken'] );
+                            if (!mplayer_helpers.isEmptyString(ACCESS_TOKEN)) {
+                                let doRequest: () => void;
+                                let retries = 5;
 
-            try {
-                const CLIENT = await ME.api.getClient();
-                if (CLIENT) {
-                    const CREDETIALS = CLIENT['_credentials'];
-                    if (CREDETIALS) {
-                        const ACCESS_TOKEN = mplayer_helpers.toStringSafe( CREDETIALS['accessToken'] );
-                        if (!mplayer_helpers.isEmptyString(ACCESS_TOKEN)) {
-                            let doRequest: () => void;
-                            let retries = 5;
+                                doRequest = () => {
+                                    try {
+                                        const OPTS: HTTP.RequestOptions = {
+                                            headers: {
+                                                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                                            },
+                                            hostname: 'api.spotify.com',
+                                            path: '/v1/me/player/next',
+                                            method: 'POST',
+                                        };
 
-                            doRequest = () => {
-                                try {
-                                    const OPTS: HTTP.RequestOptions = {
-                                        headers: {
-                                            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-                                        },
-                                        hostname: 'api.spotify.com',
-                                        path: '/v1/me/player/next',
-                                        method: 'POST',
-                                    };
+                                        const REQUEST = HTTPs.request(OPTS, (resp) => {
+                                            try {
+                                                switch (mplayer_helpers.normalizeString(resp.statusCode)) {
+                                                    case '204':
+                                                        COMPLETED(null, true);  // OK
+                                                        break;
 
-                                    const REQUEST = HTTPs.request(OPTS, (resp) => {
-                                        try {
-                                            switch (mplayer_helpers.normalizeString(resp.statusCode)) {
-                                                case '204':
-                                                    COMPLETED(null, true);  // OK
-                                                    break;
+                                                    case '202':
+                                                        // retry?
+                                                        if (retries-- > 0) {
+                                                            setTimeout(() => {
+                                                                doRequest();
+                                                            }, 5250);
+                                                        }
+                                                        else {
+                                                            // too many retries
 
-                                                case '202':
-                                                    // retry?
-                                                    if (retries-- > 0) {
-                                                        setTimeout(() => {
-                                                            doRequest();
-                                                        }, 5250);
-                                                    }
-                                                    else {
-                                                        // too many retries
+                                                            FALLBACK();
+                                                        }
+                                                        break;
 
-                                                        FALLBACK();
-                                                    }
-                                                    break;
-
-                                                default:
-                                                    COMPLETED(`Unexpected status code: ${resp.statusCode}`);
-                                                    break;
+                                                    default:
+                                                        COMPLETED(`Unexpected status code: ${resp.statusCode}`);
+                                                        break;
+                                                }
                                             }
-                                        }
-                                        catch (e) {
+                                            catch (e) {
+                                                FALLBACK();
+                                            }
+                                        });
+
+                                        mplayer_helpers.registerSafeHttpRequestErrorHandlerForCompletedAction(REQUEST, () => {
                                             FALLBACK();
-                                        }
-                                    });
+                                        });
 
-                                    mplayer_helpers.registerSafeHttpRequestErrorHandlerForCompletedAction(REQUEST, () => {
+                                        REQUEST.end();
+                                    }
+                                    catch (e) {
                                         FALLBACK();
-                                    });
+                                    }
+                                }
 
-                                    REQUEST.end();
-                                }
-                                catch (e) {
-                                    FALLBACK();
-                                }
+                                doRequest();
+                                return;
                             }
-
-                            doRequest();
-                            return;
-                        }
-                    }  
+                        }  
+                    }
                 }
+                catch (e) {}
             }
-            catch (e) {}
-            
             FALLBACK();
         });
     }
@@ -1642,78 +1645,80 @@ export class SpotifyPlayer extends Events.EventEmitter implements mplayer_contra
                     COMPLETED(e);
                 }
             };
+            if(this.config.winMediaKeys){
+                robot.keyTap('audio_prev');
+            }else{ 
+                try {
+                    const CLIENT = await ME.api.getClient();
+                    if (CLIENT) {
+                        const CREDETIALS = CLIENT['_credentials'];
+                        if (CREDETIALS) {
+                            const ACCESS_TOKEN = mplayer_helpers.toStringSafe( CREDETIALS['accessToken'] );
+                            if (!mplayer_helpers.isEmptyString(ACCESS_TOKEN)) {
+                                let doRequest: () => void;
+                                let retries = 5;
 
-            try {
-                const CLIENT = await ME.api.getClient();
-                if (CLIENT) {
-                    const CREDETIALS = CLIENT['_credentials'];
-                    if (CREDETIALS) {
-                        const ACCESS_TOKEN = mplayer_helpers.toStringSafe( CREDETIALS['accessToken'] );
-                        if (!mplayer_helpers.isEmptyString(ACCESS_TOKEN)) {
-                            let doRequest: () => void;
-                            let retries = 5;
+                                doRequest = () => {
+                                    try {
+                                        const OPTS: HTTP.RequestOptions = {
+                                            headers: {
+                                                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                                            },
+                                            hostname: 'api.spotify.com',
+                                            path: '/v1/me/player/previous',
+                                            method: 'POST',
+                                        };
 
-                            doRequest = () => {
-                                try {
-                                    const OPTS: HTTP.RequestOptions = {
-                                        headers: {
-                                            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-                                        },
-                                        hostname: 'api.spotify.com',
-                                        path: '/v1/me/player/previous',
-                                        method: 'POST',
-                                    };
+                                        const REQUEST = HTTPs.request(OPTS, (resp) => {
+                                            try {
+                                                switch (mplayer_helpers.normalizeString(resp.statusCode)) {
+                                                    case '204':
+                                                        COMPLETED(null, true);  // OK
+                                                        break;
 
-                                    const REQUEST = HTTPs.request(OPTS, (resp) => {
-                                        try {
-                                            switch (mplayer_helpers.normalizeString(resp.statusCode)) {
-                                                case '204':
-                                                    COMPLETED(null, true);  // OK
-                                                    break;
+                                                    case '202':
+                                                        // retry?
+                                                        if (retries-- > 0) {
+                                                            setTimeout(() => {
+                                                                doRequest();
+                                                            }, 5250);
+                                                        }
+                                                        else {
+                                                            // too many retries
 
-                                                case '202':
-                                                    // retry?
-                                                    if (retries-- > 0) {
-                                                        setTimeout(() => {
-                                                            doRequest();
-                                                        }, 5250);
-                                                    }
-                                                    else {
-                                                        // too many retries
+                                                            FALLBACK();
+                                                        }
+                                                        break;
 
-                                                        FALLBACK();
-                                                    }
-                                                    break;
-
-                                                default:
-                                                    COMPLETED(`Unexpected status code: ${resp.statusCode}`);
-                                                    break;
+                                                    default:
+                                                        COMPLETED(`Unexpected status code: ${resp.statusCode}`);
+                                                        break;
+                                                }
                                             }
-                                        }
-                                        catch (e) {
+                                            catch (e) {
+                                                FALLBACK();
+                                            }
+                                        });
+
+                                        mplayer_helpers.registerSafeHttpRequestErrorHandlerForCompletedAction(REQUEST, () => {
                                             FALLBACK();
-                                        }
-                                    });
+                                        });
 
-                                    mplayer_helpers.registerSafeHttpRequestErrorHandlerForCompletedAction(REQUEST, () => {
+                                        REQUEST.end();
+                                    }
+                                    catch (e) {
                                         FALLBACK();
-                                    });
+                                    }
+                                }
 
-                                    REQUEST.end();
-                                }
-                                catch (e) {
-                                    FALLBACK();
-                                }
+                                doRequest();
+                                return;
                             }
-
-                            doRequest();
-                            return;
-                        }
-                    }  
+                        }  
+                    }
                 }
+                catch (e) {}
             }
-            catch (e) {}
-            
             FALLBACK();
         });
     }

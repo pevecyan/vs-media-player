@@ -468,6 +468,11 @@ export interface SpotifyPlayerConfig extends PlayerConfig {
      * The redirect URL for the authorization..
      */
     readonly redirectURL?: string;
+    /**
+     * Are windows media keys enabled
+     */
+    readonly winMediaKeys?: boolean;
+
     /** @inheritdoc */
     readonly type: "spotify";
 }
